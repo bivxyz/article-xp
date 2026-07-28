@@ -3,7 +3,7 @@ Contributors: avery
 Tags: geo, seo, reading time, last updated, tldr
 Requires at least: 6.2
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -53,6 +53,10 @@ Auto mode only adjusts `dateModified` in an Article node already produced by Yoa
 If the active theme already inserts an article details bar with `the_content`, disable that theme hook after activating this plugin to avoid duplicate UI.
 
 == Changelog ==
+
+= 1.0.1 =
+* Replaced native color pickers with six-digit HEX fields.
+* Added a live settings preview for colors, spacing, radius, and labels.
 
 = 1.0.0 =
 * Initial release.

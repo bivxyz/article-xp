@@ -26,6 +26,34 @@ final class AIG_Settings {
 		$this->plugin = $plugin;
 		add_action( 'admin_menu', array( $this, 'add_page' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+	}
+
+	/**
+	 * Load the real component styles and live-preview behavior on this page only.
+	 *
+	 * @param string $hook_suffix Current admin page hook.
+	 * @return void
+	 */
+	public function enqueue_assets( $hook_suffix ) {
+		if ( 'settings_page_article-insights-for-geo' !== $hook_suffix ) {
+			return;
+		}
+
+		wp_enqueue_style( 'aig-frontend' );
+		wp_enqueue_style(
+			'aig-settings',
+			AIG_PLUGIN_URL . 'assets/css/settings.css',
+			array( 'aig-frontend' ),
+			AIG_VERSION
+		);
+		wp_enqueue_script(
+			'aig-settings',
+			AIG_PLUGIN_URL . 'assets/js/settings.js',
+			array(),
+			AIG_VERSION,
+			true
+		);
 	}
 
 	/**
@@ -82,6 +110,7 @@ final class AIG_Settings {
 		$this->add_field( 'colors', __( 'Colors', 'article-insights-for-geo' ), array( $this, 'render_colors' ), 'aig_appearance' );
 		$this->add_field( 'radius', __( 'Border radius', 'article-insights-for-geo' ), array( $this, 'render_radius' ), 'aig_appearance' );
 		$this->add_field( 'spacing', __( 'Spacing', 'article-insights-for-geo' ), array( $this, 'render_spacing' ), 'aig_appearance' );
+		$this->add_field( 'preview', __( 'Live preview', 'article-insights-for-geo' ), array( $this, 'render_preview' ), 'aig_appearance' );
 
 		add_settings_section( 'aig_schema', __( 'Structured data', 'article-insights-for-geo' ), '__return_false', 'article-insights-for-geo' );
 		$this->add_field( 'schema_mode', __( 'Compatibility mode', 'article-insights-for-geo' ), array( $this, 'render_schema' ), 'aig_schema' );
@@ -349,7 +378,7 @@ final class AIG_Settings {
 		) {
 			printf(
 				'<label style="display:inline-flex;align-items:center;gap:8px;margin:0 18px 8px 0">' .
-				'<span style="width:22px;height:22px;border:1px solid #8c8f94;border-radius:3px;background:%3$s" aria-hidden="true"></span>' .
+				'<span style="width:22px;height:22px;border:1px solid #8c8f94;border-radius:3px;background:%3$s" data-aig-swatch="%1$s[%2$s]" aria-hidden="true"></span>' .
 				'<span>%4$s</span>' .
 				'<input class="regular-text code" style="width:9ch" type="text" inputmode="text" maxlength="7" pattern="#[0-9A-Fa-f]{6}" ' .
 				'name="%1$s[%2$s]" value="%3$s" aria-label="%4$s %5$s" title="%6$s">' .
@@ -390,6 +419,54 @@ final class AIG_Settings {
 		echo '<option value="comfortable" ' . selected( $values['spacing'], 'comfortable', false ) . '>' . esc_html__( 'Comfortable', 'article-insights-for-geo' ) . '</option>';
 		echo '<option value="compact" ' . selected( $values['spacing'], 'compact', false ) . '>' . esc_html__( 'Compact', 'article-insights-for-geo' ) . '</option>';
 		echo '</select>';
+	}
+
+	/**
+	 * Render a live preview using the same classes as the front-end components.
+	 *
+	 * @return void
+	 */
+	public function render_preview() {
+		$values  = $this->values();
+		$padding = 'compact' === $values['spacing'] ? '14px 18px' : '18px 22px';
+		$style   = sprintf(
+			'--aig-background:%1$s;--aig-accent:%2$s;--aig-text:%3$s;--aig-radius:%4$dpx;--aig-padding:%5$s;',
+			esc_attr( $values['background'] ),
+			esc_attr( $values['accent'] ),
+			esc_attr( $values['text_color'] ),
+			(int) $values['border_radius'],
+			esc_attr( $padding )
+		);
+		$read_label = str_replace( '%s', '8', $values['read_label'] );
+		$clock_icon = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>';
+		$book_icon  = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5A2.5 2.5 0 0 1 20 21.5z"></path></svg>';
+		?>
+		<div class="aig-settings-preview-frame">
+			<div class="aig-settings-preview" style="<?php echo esc_attr( $style ); ?>">
+				<aside class="aig-article-details" aria-label="<?php esc_attr_e( 'Article details preview', 'article-insights-for-geo' ); ?>">
+					<div class="aig-article-details__item">
+						<span class="aig-article-details__icon"><?php echo $clock_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static SVG. ?></span>
+						<span>
+							<strong data-aig-preview-modified><?php echo esc_html( $values['modified_label'] ); ?></strong>
+							<time datetime="2026-07-28">July 28, 2026</time>
+						</span>
+					</div>
+					<span class="aig-article-details__divider" aria-hidden="true"></span>
+					<div class="aig-article-details__item">
+						<span class="aig-article-details__icon"><?php echo $book_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static SVG. ?></span>
+						<strong data-aig-preview-read><?php echo esc_html( $read_label ); ?></strong>
+					</div>
+				</aside>
+				<aside class="aig-tldr" aria-labelledby="aig-settings-preview-title">
+					<h3 class="aig-tldr__title" id="aig-settings-preview-title"><?php esc_html_e( 'TL;DR', 'article-insights-for-geo' ); ?></h3>
+					<div class="aig-tldr__content">
+						<p><?php esc_html_e( 'This preview uses the same styles readers will see at the beginning of an article.', 'article-insights-for-geo' ); ?></p>
+					</div>
+				</aside>
+			</div>
+		</div>
+		<p class="description"><?php esc_html_e( 'Changes appear here immediately and are applied to articles after you save.', 'article-insights-for-geo' ); ?></p>
+		<?php
 	}
 
 	/**
