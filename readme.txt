@@ -1,9 +1,9 @@
 === Article XP ===
-Contributors: avery
+Contributors: bivxyz
 Tags: geo, seo, reading time, last updated, tldr
 Requires at least: 6.2
 Requires PHP: 7.4
-Stable tag: 1.0.4
+Stable tag: 1.0.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -55,6 +55,9 @@ Auto mode only adjusts `dateModified` in an Article node already produced by Yoa
 If the active theme already inserts an article details bar with `the_content`, disable that theme hook after activating this plugin to avoid duplicate UI.
 
 == Changelog ==
+
+= 1.0.5 =
+* Corrected the plugin author attribution to Nic Bivens.
 
 = 1.0.4 =
 * Expanded automatic placement support for Elementor, Divi, Beaver Builder, Bricks, and Breakdance.
