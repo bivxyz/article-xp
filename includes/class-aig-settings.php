@@ -63,8 +63,8 @@ final class AIG_Settings {
 	 */
 	public function add_page() {
 		add_options_page(
-			__( 'Article Insights', 'article-insights-for-geo' ),
-			__( 'Article Insights', 'article-insights-for-geo' ),
+			__( 'Article XP', 'article-insights-for-geo' ),
+			__( 'Article XP', 'article-insights-for-geo' ),
 			'manage_options',
 			'article-insights-for-geo',
 			array( $this, 'render_page' )
@@ -91,7 +91,7 @@ final class AIG_Settings {
 			'aig_content',
 			__( 'Content and placement', 'article-insights-for-geo' ),
 			static function () {
-				echo '<p>' . esc_html__( 'Choose where Article Insights is available and which elements are inserted automatically.', 'article-insights-for-geo' ) . '</p>';
+				echo '<p>' . esc_html__( 'Choose where Article XP is available and which elements are inserted automatically.', 'article-insights-for-geo' ) . '</p>';
 			},
 			'article-insights-for-geo'
 		);
@@ -494,7 +494,7 @@ final class AIG_Settings {
 		}
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Article Insights', 'article-insights-for-geo' ); ?></h1>
+			<h1><?php esc_html_e( 'Article XP', 'article-insights-for-geo' ); ?></h1>
 			<p><?php esc_html_e( 'Give readers and crawlers clear, visible signals about article freshness, length, and purpose.', 'article-insights-for-geo' ); ?></p>
 			<?php settings_errors(); ?>
 			<form action="options.php" method="post">

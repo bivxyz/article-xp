@@ -52,14 +52,14 @@
 	registerBlockType( 'article-insights/tldr', {
 		apiVersion: 2,
 		title: __( 'TL;DR', 'article-insights-for-geo' ),
-		description: __( 'Display the approved article summary from the Article Insights panel.', 'article-insights-for-geo' ),
+		description: __( 'Display the approved article summary from the Article XP panel.', 'article-insights-for-geo' ),
 		icon: 'excerpt-view',
 		category: 'widgets',
 		supports: { html: false, multiple: false },
 		edit: function () {
 			return blockPreview(
 				'article-insights/tldr',
-				__( 'Add a TL;DR in the Article Insights panel to display this block.', 'article-insights-for-geo' )
+				__( 'Add a TL;DR in the Article XP panel to display this block.', 'article-insights-for-geo' )
 			);
 		},
 		save: function () {
@@ -110,7 +110,7 @@
 			PluginDocumentSettingPanel,
 			{
 				name: 'article-insights',
-				title: __( 'Article Insights', 'article-insights-for-geo' ),
+				title: __( 'Article XP', 'article-insights-for-geo' ),
 				className: 'aig-document-panel',
 			},
 			el( SelectControl, {

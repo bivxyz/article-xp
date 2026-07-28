@@ -1,9 +1,9 @@
-=== Article Insights for GEO ===
+=== Article XP ===
 Contributors: avery
 Tags: geo, seo, reading time, last updated, tldr
 Requires at least: 6.2
 Requires PHP: 7.4
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -11,22 +11,22 @@ Adds visible, crawlable article freshness, reading-time, and editor-approved TL;
 
 == Description ==
 
-Article Insights for GEO renders useful article context in the initial server-generated HTML:
+Article XP renders useful article context in the initial server-generated HTML:
 
 * A semantic published or last-updated date
 * An estimated reading time
 * An optional editor-approved TL;DR paragraph or list
 
-Posts are enabled by default. Pages and other public post types can be enabled under Settings > Article Insights.
+Posts are enabled by default. Pages and other public post types can be enabled under Settings > Article XP.
 
 The plugin does not promise search rankings or citations. It makes useful reader-facing information explicit and machine-readable.
 
 == Installation ==
 
-1. Upload the `article-insights-for-geo` folder to `/wp-content/plugins/`.
+1. Upload the `article-xp` folder to `/wp-content/plugins/`.
 2. Activate the plugin.
-3. Open Settings > Article Insights to configure content types, labels, placement, and appearance.
-4. Edit a post and open the Article Insights document panel to add a TL;DR or set per-post overrides.
+3. Open Settings > Article XP to configure content types, labels, placement, and appearance.
+4. Edit a post and open the Article XP document panel to add a TL;DR or set per-post overrides.
 
 == Automatic and manual placement ==
 
@@ -53,6 +53,9 @@ Auto mode only adjusts `dateModified` in an Article node already produced by Yoa
 If the active theme already inserts an article details bar with `the_content`, disable that theme hook after activating this plugin to avoid duplicate UI.
 
 == Changelog ==
+
+= 1.0.2 =
+* Renamed the plugin to Article XP while preserving existing settings and block compatibility.
 
 = 1.0.1 =
 * Replaced native color pickers with six-digit HEX fields.
