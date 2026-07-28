@@ -127,9 +127,9 @@ final class AIG_Settings {
 			);
 		}
 
-		$background = sanitize_hex_color( $input['background'] ?? '' ) ?: $defaults['background'];
-		$accent     = sanitize_hex_color( $input['accent'] ?? '' ) ?: $defaults['accent'];
-		$text_color = sanitize_hex_color( $input['text_color'] ?? '' ) ?: $defaults['text_color'];
+		$background = $this->sanitize_hex_six( $input['background'] ?? '', $defaults['background'] );
+		$accent     = $this->sanitize_hex_six( $input['accent'] ?? '', $defaults['accent'] );
+		$text_color = $this->sanitize_hex_six( $input['text_color'] ?? '', $defaults['text_color'] );
 
 		if ( $this->contrast_ratio( $background, $text_color ) < 4.5 ) {
 			$background = $defaults['background'];
@@ -183,6 +183,18 @@ final class AIG_Settings {
 		$darker           = min( $first_luminance, $second_luminance );
 
 		return ( $lighter + 0.05 ) / ( $darker + 0.05 );
+	}
+
+	/**
+	 * Accept and normalize a six-digit HEX color.
+	 *
+	 * @param string $value   Submitted color.
+	 * @param string $default Default color.
+	 * @return string
+	 */
+	private function sanitize_hex_six( $value, $default ) {
+		$value = trim( (string) $value );
+		return preg_match( '/^#[0-9A-Fa-f]{6}$/', $value ) ? strtoupper( $value ) : strtoupper( $default );
 	}
 
 	/**
@@ -336,13 +348,21 @@ final class AIG_Settings {
 			) as $key => $label
 		) {
 			printf(
-				'<label style="display:inline-flex;align-items:center;gap:6px;margin:0 18px 6px 0"><input type="color" name="%1$s[%2$s]" value="%3$s"> %4$s</label>',
+				'<label style="display:inline-flex;align-items:center;gap:8px;margin:0 18px 8px 0">' .
+				'<span style="width:22px;height:22px;border:1px solid #8c8f94;border-radius:3px;background:%3$s" aria-hidden="true"></span>' .
+				'<span>%4$s</span>' .
+				'<input class="regular-text code" style="width:9ch" type="text" inputmode="text" maxlength="7" pattern="#[0-9A-Fa-f]{6}" ' .
+				'name="%1$s[%2$s]" value="%3$s" aria-label="%4$s %5$s" title="%6$s">' .
+				'</label>',
 				esc_attr( AIG_Plugin::OPTION_KEY ),
 				esc_attr( $key ),
 				esc_attr( $values[ $key ] ),
-				esc_html( $label )
+				esc_html( $label ),
+				esc_attr__( 'HEX color', 'article-insights-for-geo' ),
+				esc_attr__( 'Enter a six-digit HEX color, including the # symbol.', 'article-insights-for-geo' )
 			);
 		}
+		echo '<p class="description">' . esc_html__( 'Use six-digit HEX values in #RRGGBB format.', 'article-insights-for-geo' ) . '</p>';
 	}
 
 	/**
