@@ -1,0 +1,119 @@
+.aig-article-details,
+.aig-tldr {
+	box-sizing: border-box;
+	width: 100%;
+	color: var(--aig-text, #14213d);
+	font-family: inherit;
+}
+
+.aig-article-details {
+	display: flex;
+	min-height: 72px;
+	align-items: center;
+	gap: 24px;
+	margin: 0 0 18px;
+	padding: var(--aig-padding, 18px 22px);
+	border-radius: var(--aig-radius, 12px);
+	background: var(--aig-background, #eef3ff);
+	font-size: 15px;
+	line-height: 1.4;
+}
+
+.aig-article-details__item {
+	display: inline-flex;
+	min-width: 0;
+	align-items: center;
+	gap: 12px;
+}
+
+.aig-article-details__item strong {
+	color: inherit;
+	font-weight: 700;
+}
+
+.aig-article-details__icon {
+	display: inline-grid;
+	width: 38px;
+	height: 38px;
+	flex: 0 0 38px;
+	place-items: center;
+	border-radius: 50%;
+	background: #fff;
+	color: var(--aig-accent, #315efb);
+}
+
+.aig-article-details__icon svg {
+	display: block;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.8;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.aig-article-details__divider {
+	width: 1px;
+	height: 34px;
+	flex: 0 0 1px;
+	background: var(--aig-accent, #315efb);
+	opacity: 0.22;
+}
+
+.aig-tldr {
+	margin: 0 0 36px;
+	padding: var(--aig-padding, 18px 22px);
+	border: 1px solid #d7e0f5;
+	border: 1px solid color-mix(in srgb, var(--aig-accent, #315efb) 28%, transparent);
+	border-inline-start: 4px solid var(--aig-accent, #315efb);
+	border-radius: var(--aig-radius, 12px);
+	background: #f7f9ff;
+	background: color-mix(in srgb, var(--aig-background, #eef3ff) 48%, white);
+}
+
+.aig-tldr__title {
+	margin: 0 0 8px;
+	color: inherit;
+	font: inherit;
+	font-size: 1rem;
+	font-weight: 750;
+	letter-spacing: 0.02em;
+}
+
+.aig-tldr__content > :first-child {
+	margin-top: 0;
+}
+
+.aig-tldr__content > :last-child {
+	margin-bottom: 0;
+}
+
+.aig-tldr__content ul,
+.aig-tldr__content ol {
+	padding-inline-start: 1.35em;
+}
+
+.aig-tldr a {
+	color: var(--aig-accent, #315efb);
+	text-decoration: underline;
+	text-underline-offset: 0.14em;
+}
+
+@media (max-width: 560px) {
+	.aig-article-details {
+		align-items: stretch;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.aig-article-details__divider {
+		width: 100%;
+		height: 1px;
+	}
+}
+
+@media (forced-colors: active) {
+	.aig-article-details,
+	.aig-tldr {
+		border: 1px solid CanvasText;
+	}
+}

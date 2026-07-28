@@ -1,0 +1,22 @@
+.aig-editor-tldr {
+	min-height: 88px;
+	margin: 0;
+	padding: 10px 12px;
+	border: 1px solid #949494;
+	border-radius: 2px;
+	background: #fff;
+}
+
+.aig-editor-tldr:focus {
+	border-color: var(--wp-admin-theme-color, #3858e9);
+	box-shadow: 0 0 0 1px var(--wp-admin-theme-color, #3858e9);
+	outline: 2px solid transparent;
+}
+
+.aig-editor-tldr li + li {
+	margin-top: 6px;
+}
+
+.aig-editor-preview {
+	pointer-events: none;
+}
