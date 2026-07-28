@@ -27,6 +27,13 @@ final class AIG_Plugin {
 	private static $instance = null;
 
 	/**
+	 * Whether the singular page has already received automatic or explicit output.
+	 *
+	 * @var bool
+	 */
+	private $page_output_rendered = false;
+
+	/**
 	 * Return the singleton.
 	 *
 	 * @return AIG_Plugin
@@ -82,11 +89,16 @@ final class AIG_Plugin {
 		add_action( 'save_post', array( $this, 'cache_reading_time' ), 20, 2 );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
 		add_action( 'enqueue_block_editor_assets', array( $this, 'localize_editor' ) );
+		add_action( 'wp_footer', array( $this, 'render_builder_fallback' ), 5 );
 
 		add_filter( 'the_content', array( $this, 'prepend_insights' ), 8 );
 		add_filter( 'wpseo_schema_article', array( $this, 'filter_article_schema' ) );
 		add_filter( 'rank_math/snippet/rich_snippet_article_entity', array( $this, 'filter_article_schema' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( AIG_PLUGIN_FILE ), array( $this, 'settings_link' ) );
+
+		add_shortcode( 'article_xp', array( $this, 'render_combined_shortcode' ) );
+		add_shortcode( 'article_xp_details', array( $this, 'render_details_shortcode' ) );
+		add_shortcode( 'article_xp_tldr', array( $this, 'render_tldr_shortcode' ) );
 
 		if ( is_admin() ) {
 			require_once AIG_PLUGIN_DIR . 'includes/class-aig-settings.php';
@@ -151,6 +163,13 @@ final class AIG_Plugin {
 				'wp-plugins',
 				'wp-server-side-render',
 			),
+			AIG_VERSION,
+			true
+		);
+		wp_register_script(
+			'aig-frontend-script',
+			AIG_PLUGIN_URL . 'assets/js/frontend.js',
+			array(),
 			AIG_VERSION,
 			true
 		);
@@ -336,6 +355,7 @@ final class AIG_Plugin {
 		}
 
 		wp_enqueue_style( 'aig-frontend' );
+		wp_enqueue_script( 'aig-frontend-script' );
 		$settings = $this->settings();
 		$padding  = 'compact' === $settings['spacing'] ? '14px 18px' : '18px 22px';
 		$css      = sprintf(
@@ -440,23 +460,37 @@ final class AIG_Plugin {
 			|| is_feed()
 			|| ( function_exists( 'wp_is_json_request' ) && wp_is_json_request() )
 			|| ! is_singular( $this->enabled_post_types() )
-			|| ! in_the_loop()
-			|| ! is_main_query()
+			|| ! did_action( 'wp_head' )
+			|| $this->page_output_rendered
 		) {
 			return $content;
 		}
 
 		$post_id = get_the_ID();
-		if ( ! $post_id || 'manual' === get_post_meta( $post_id, self::META_PLACEMENT, true ) ) {
+		if (
+			! $post_id
+			|| (int) $post_id !== (int) get_queried_object_id()
+			|| 'manual' === get_post_meta( $post_id, self::META_PLACEMENT, true )
+		) {
 			return $content;
 		}
 
-		static $rendered = array();
-		if ( isset( $rendered[ $post_id ] ) ) {
-			return $content;
+		$output = $this->automatic_output( $post_id, $content );
+		if ( '' !== $output ) {
+			$this->page_output_rendered = true;
 		}
-		$rendered[ $post_id ] = true;
 
+		return $output . $content;
+	}
+
+	/**
+	 * Build the components allowed by global settings, post overrides, and blocks.
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $content Saved or filtered post content.
+	 * @return string
+	 */
+	private function automatic_output( $post_id, $content ) {
 		$settings = $this->settings();
 		$output   = '';
 
@@ -476,7 +510,108 @@ final class AIG_Plugin {
 			$output .= $this->render_tldr( $post_id );
 		}
 
-		return $output . $content;
+		return $output;
+	}
+
+	/**
+	 * Render a server-side fallback when a page builder bypasses the_content.
+	 *
+	 * The wrapper is printed in the initial HTML and moved beside the builder's
+	 * article content by the small front-end script. Standard themes never use it.
+	 *
+	 * @return void
+	 */
+	public function render_builder_fallback() {
+		if (
+			is_admin()
+			|| is_feed()
+			|| $this->page_output_rendered
+			|| ! is_singular( $this->enabled_post_types() )
+		) {
+			return;
+		}
+
+		$post_id = get_queried_object_id();
+		if ( ! $post_id || 'manual' === get_post_meta( $post_id, self::META_PLACEMENT, true ) ) {
+			return;
+		}
+
+		$content = (string) get_post_field( 'post_content', $post_id );
+		$output  = $this->automatic_output( $post_id, $content );
+		if ( '' === $output ) {
+			return;
+		}
+
+		$this->page_output_rendered = true;
+		echo '<div class="aig-builder-fallback" data-aig-builder-fallback>' . $output . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Component renderers escape dynamic values.
+	}
+
+	/**
+	 * Render both components through a page-builder shortcode element.
+	 *
+	 * @return string
+	 */
+	public function render_combined_shortcode() {
+		$post_id = $this->shortcode_post_id();
+		if ( ! $post_id ) {
+			return '';
+		}
+
+		$output = '';
+		if ( $this->component_is_visible( $post_id, self::META_DETAILS, 'show_details' ) ) {
+			$output .= $this->render_details( $post_id );
+		}
+		if ( $this->component_is_visible( $post_id, self::META_SHOW_TLDR, 'show_tldr' ) ) {
+			$output .= $this->render_tldr( $post_id );
+		}
+		if ( '' !== $output ) {
+			$this->page_output_rendered = true;
+		}
+
+		return $output;
+	}
+
+	/**
+	 * Render only article details through a shortcode.
+	 *
+	 * @return string
+	 */
+	public function render_details_shortcode() {
+		$post_id = $this->shortcode_post_id();
+		if ( ! $post_id || ! $this->component_is_visible( $post_id, self::META_DETAILS, 'show_details' ) ) {
+			return '';
+		}
+		$this->page_output_rendered = true;
+		return $this->render_details( $post_id );
+	}
+
+	/**
+	 * Render only the TL;DR through a shortcode.
+	 *
+	 * @return string
+	 */
+	public function render_tldr_shortcode() {
+		$post_id = $this->shortcode_post_id();
+		if ( ! $post_id || ! $this->component_is_visible( $post_id, self::META_SHOW_TLDR, 'show_tldr' ) ) {
+			return '';
+		}
+		$output = $this->render_tldr( $post_id );
+		if ( '' !== $output ) {
+			$this->page_output_rendered = true;
+		}
+		return $output;
+	}
+
+	/**
+	 * Resolve and validate the current post for shortcode output.
+	 *
+	 * @return int
+	 */
+	private function shortcode_post_id() {
+		$post_id = get_the_ID() ?: get_queried_object_id();
+		return $post_id && in_array( get_post_type( $post_id ), $this->enabled_post_types(), true )
+			? (int) $post_id
+			: 0;
 	}
 
 	/**

@@ -6,6 +6,10 @@
 	font-family: inherit;
 }
 
+.aig-builder-fallback {
+	width: 100%;
+}
+
 .aig-article-details {
 	display: flex;
 	min-height: 72px;
