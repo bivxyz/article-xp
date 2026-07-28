@@ -3,7 +3,7 @@ Contributors: avery
 Tags: geo, seo, reading time, last updated, tldr
 Requires at least: 6.2
 Requires PHP: 7.4
-Stable tag: 1.0.3
+Stable tag: 1.0.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,7 +34,7 @@ By default, Article Details and an available TL;DR are inserted before the main 
 
 The plugin suppresses automatic output for a component when its corresponding block is present.
 
-For page builders, the plugin includes an automatic fallback when the builder bypasses WordPress's content filter. A template may also place `[article_xp]`, `[article_xp_details]`, or `[article_xp_tldr]` explicitly through a Shortcode element.
+For page builders, the plugin includes automatic fallback placement for Oxygen, Elementor, Divi, Beaver Builder, Bricks, Breakdance, and common theme content containers when a template bypasses WordPress's content filter. A generic article fallback is used when no known content container exists. A template may also place `[article_xp]`, `[article_xp_details]`, or `[article_xp_tldr]` explicitly through a Shortcode element.
 
 == Structured data ==
 
@@ -55,6 +55,11 @@ Auto mode only adjusts `dateModified` in an Article node already produced by Yoa
 If the active theme already inserts an article details bar with `the_content`, disable that theme hook after activating this plugin to avoid duplicate UI.
 
 == Changelog ==
+
+= 1.0.4 =
+* Expanded automatic placement support for Elementor, Divi, Beaver Builder, Bricks, and Breakdance.
+* Added a generic semantic article fallback for custom builder templates.
+* Added automated placement regression tests for supported builder containers.
 
 = 1.0.3 =
 * Added automatic fallback placement for Oxygen and other builders that bypass the_content.
