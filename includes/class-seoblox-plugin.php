@@ -2,27 +2,28 @@
 /**
  * Main plugin controller.
  *
- * @package ArticleInsightsForGEO
+ * @package SEOblox
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-final class AIG_Plugin {
-	const OPTION_KEY       = 'aig_settings';
-	const META_TLDR        = '_aig_tldr';
-	const META_TLDR_FORMAT = '_aig_tldr_format';
-	const META_DETAILS     = '_aig_show_details';
-	const META_SHOW_TLDR   = '_aig_show_tldr';
-	const META_PLACEMENT   = '_aig_placement';
-	const META_WORD_COUNT  = '_aig_word_count';
-	const META_MINUTES     = '_aig_reading_minutes';
+final class SEOblox_Plugin {
+	const OPTION_KEY       = 'seoblox_settings';
+	const MIGRATION_KEY    = 'seoblox_migration_version';
+	const META_TLDR        = '_seoblox_tldr';
+	const META_TLDR_FORMAT = '_seoblox_tldr_format';
+	const META_DETAILS     = '_seoblox_show_details';
+	const META_SHOW_TLDR   = '_seoblox_show_tldr';
+	const META_PLACEMENT   = '_seoblox_placement';
+	const META_WORD_COUNT  = '_seoblox_word_count';
+	const META_MINUTES     = '_seoblox_reading_minutes';
 
 	/**
 	 * Singleton instance.
 	 *
-	 * @var AIG_Plugin|null
+	 * @var SEOblox_Plugin|null
 	 */
 	private static $instance = null;
 
@@ -33,10 +34,13 @@ final class AIG_Plugin {
 	 */
 	private $page_output_rendered = false;
 
+	/** Copying existing storage must not run custom sanitization a second time. */
+	private $migrating_meta = false;
+
 	/**
 	 * Return the singleton.
 	 *
-	 * @return AIG_Plugin
+	 * @return SEOblox_Plugin
 	 */
 	public static function instance() {
 		if ( null === self::$instance ) {
@@ -52,7 +56,83 @@ final class AIG_Plugin {
 	 * @return void
 	 */
 	public static function activate() {
-		add_option( self::OPTION_KEY, self::defaults() );
+		self::maybe_upgrade();
+	}
+
+	/**
+	 * Copy legacy settings once, before defaults can shadow them.
+	 * Runs on activation and normal plugin loads (updates need not reactivate).
+	 */
+	public static function maybe_upgrade() {
+		if ( '2.0.0' === get_option( self::MIGRATION_KEY ) ) {
+			return;
+		}
+		$missing = new stdClass();
+		if ( $missing === get_option( self::OPTION_KEY, $missing ) ) {
+			$legacy = get_option( 'aig_settings', $missing );
+			$value  = is_array( $legacy ) ? $legacy : self::defaults();
+			if ( ! add_option( self::OPTION_KEY, $value ) ) {
+				return; // Retry next load if persistence failed. Never delete legacy data.
+			}
+		}
+		update_option( self::MIGRATION_KEY, '2.0.0', false );
+	}
+
+	/** Content-layer only: never read, write, or render commerce records. */
+	public static function is_content_post_type( $post_type ) {
+		return ! in_array( $post_type, array( 'attachment', 'product', 'product_variation', 'shop_order', 'shop_order_refund', 'shop_order_placehold' ), true );
+	}
+
+	/** New key => retained legacy key. */
+	public static function legacy_meta_keys() {
+		return array(
+			self::META_TLDR        => '_aig_tldr',
+			self::META_TLDR_FORMAT => '_aig_tldr_format',
+			self::META_DETAILS     => '_aig_show_details',
+			self::META_SHOW_TLDR   => '_aig_show_tldr',
+			self::META_PLACEMENT   => '_aig_placement',
+			self::META_WORD_COUNT  => '_aig_word_count',
+			self::META_MINUTES     => '_aig_reading_minutes',
+		);
+	}
+
+	/** An explicitly empty new value wins over legacy content. */
+	public function post_meta( $post_id, $key ) {
+		if ( ! $this->eligible_post( $post_id ) ) {
+			return '';
+		}
+		$legacy = self::legacy_meta_keys();
+		if ( ! metadata_exists( 'post', $post_id, $key ) && isset( $legacy[ $key ] ) && metadata_exists( 'post', $post_id, $legacy[ $key ] ) ) {
+			return get_post_meta( $post_id, $legacy[ $key ], true );
+		}
+		return get_post_meta( $post_id, $key, true );
+	}
+
+	private function eligible_post( $post_id ) {
+		return in_array( get_post_type( $post_id ), $this->enabled_post_types(), true );
+	}
+
+	/** Make the editor see effective legacy values without writing on reads. */
+	public function prepare_rest_meta( $response, $post ) {
+		if ( ! $this->eligible_post( $post->ID ) ) {
+			return $response;
+		}
+		$data = $response->get_data();
+		if ( isset( $data['meta'] ) && is_array( $data['meta'] ) ) {
+			foreach ( self::legacy_meta_keys() as $key => $legacy ) {
+				if ( array_key_exists( $key, $data['meta'] ) && ! metadata_exists( 'post', $post->ID, $key ) && metadata_exists( 'post', $post->ID, $legacy ) ) {
+					$data['meta'][ $key ] = $this->post_meta( $post->ID, $key );
+				}
+			}
+			$response->set_data( $data );
+		}
+		return $response;
+	}
+
+	/** Preserve old hook arguments, then let the new hook make the final decision. */
+	private function filter( $suffix, $value, ...$args ) {
+		$value = apply_filters_deprecated( 'aig_' . $suffix, array_merge( array( $value ), $args ), '2.0.0', 'seoblox_' . $suffix );
+		return apply_filters( 'seoblox_' . $suffix, $value, ...$args );
 	}
 
 	/**
@@ -68,9 +148,9 @@ final class AIG_Plugin {
 			'auto_details'    => 1,
 			'auto_tldr'       => 1,
 			'words_per_minute'=> 225,
-			'published_label' => __( 'Published on', 'article-insights-for-geo' ),
-			'modified_label'  => __( 'Last updated on', 'article-insights-for-geo' ),
-			'read_label'      => __( '%s min read', 'article-insights-for-geo' ),
+			'published_label' => __( 'Published on', 'seoblox' ),
+			'modified_label'  => __( 'Last updated on', 'seoblox' ),
+			'read_label'      => __( '%s min read', 'seoblox' ),
 			'background'      => '#EEF3FF',
 			'accent'          => '#315EFB',
 			'text_color'      => '#14213D',
@@ -84,6 +164,7 @@ final class AIG_Plugin {
 	 * Constructor.
 	 */
 	private function __construct() {
+		add_action( 'init', array( __CLASS__, 'maybe_upgrade' ), 0 );
 		add_action( 'init', array( $this, 'register_meta_and_blocks' ) );
 		add_action( 'init', array( $this, 'register_assets' ), 5 );
 		add_action( 'save_post', array( $this, 'cache_reading_time' ), 20, 2 );
@@ -94,15 +175,18 @@ final class AIG_Plugin {
 		add_filter( 'the_content', array( $this, 'prepend_insights' ), 8 );
 		add_filter( 'wpseo_schema_article', array( $this, 'filter_article_schema' ) );
 		add_filter( 'rank_math/snippet/rich_snippet_article_entity', array( $this, 'filter_article_schema' ) );
-		add_filter( 'plugin_action_links_' . plugin_basename( AIG_PLUGIN_FILE ), array( $this, 'settings_link' ) );
+		add_filter( 'plugin_action_links_' . plugin_basename( SEOBLOX_PLUGIN_FILE ), array( $this, 'settings_link' ) );
 
+		add_shortcode( 'seoblox', array( $this, 'render_combined_shortcode' ) );
 		add_shortcode( 'article_xp', array( $this, 'render_combined_shortcode' ) );
+		add_shortcode( 'seoblox_details', array( $this, 'render_details_shortcode' ) );
 		add_shortcode( 'article_xp_details', array( $this, 'render_details_shortcode' ) );
+		add_shortcode( 'seoblox_tldr', array( $this, 'render_tldr_shortcode' ) );
 		add_shortcode( 'article_xp_tldr', array( $this, 'render_tldr_shortcode' ) );
 
 		if ( is_admin() ) {
-			require_once AIG_PLUGIN_DIR . 'includes/class-aig-settings.php';
-			new AIG_Settings( $this );
+			require_once SEOBLOX_PLUGIN_DIR . 'includes/class-seoblox-settings.php';
+			new SEOblox_Settings( $this );
 		}
 	}
 
@@ -127,7 +211,9 @@ final class AIG_Plugin {
 			? array_map( 'sanitize_key', $settings['post_types'] )
 			: array( 'post' );
 
-		return array_values( array_filter( array_unique( $types ), 'post_type_exists' ) );
+		return array_values( array_filter( array_unique( $types ), static function ( $type ) {
+			return post_type_exists( $type ) && self::is_content_post_type( $type );
+		} ) );
 	}
 
 	/**
@@ -137,20 +223,20 @@ final class AIG_Plugin {
 	 */
 	public function register_assets() {
 		wp_register_style(
-			'aig-frontend',
-			AIG_PLUGIN_URL . 'assets/css/frontend.css',
+			'seoblox-frontend',
+			SEOBLOX_PLUGIN_URL . 'assets/css/frontend.css',
 			array(),
-			AIG_VERSION
+			SEOBLOX_VERSION
 		);
 		wp_register_style(
-			'aig-editor',
-			AIG_PLUGIN_URL . 'assets/css/editor.css',
+			'seoblox-editor',
+			SEOBLOX_PLUGIN_URL . 'assets/css/editor.css',
 			array( 'wp-edit-blocks' ),
-			AIG_VERSION
+			SEOBLOX_VERSION
 		);
 		wp_register_script(
-			'aig-editor',
-			AIG_PLUGIN_URL . 'assets/js/editor.js',
+			'seoblox-editor',
+			SEOBLOX_PLUGIN_URL . 'assets/js/editor.js',
 			array(
 				'wp-block-editor',
 				'wp-blocks',
@@ -163,14 +249,14 @@ final class AIG_Plugin {
 				'wp-plugins',
 				'wp-server-side-render',
 			),
-			AIG_VERSION,
+			SEOBLOX_VERSION,
 			true
 		);
 		wp_register_script(
-			'aig-frontend-script',
-			AIG_PLUGIN_URL . 'assets/js/frontend.js',
+			'seoblox-frontend-script',
+			SEOBLOX_PLUGIN_URL . 'assets/js/frontend.js',
 			array(),
-			AIG_VERSION,
+			SEOBLOX_VERSION,
 			true
 		);
 	}
@@ -182,6 +268,7 @@ final class AIG_Plugin {
 	 */
 	public function register_meta_and_blocks() {
 		foreach ( $this->enabled_post_types() as $post_type ) {
+			add_filter( 'rest_prepare_' . $post_type, array( $this, 'prepare_rest_meta' ), 10, 2 );
 			if ( ! post_type_supports( $post_type, 'custom-fields' ) ) {
 				add_post_type_support( $post_type, 'custom-fields' );
 			}
@@ -199,7 +286,7 @@ final class AIG_Plugin {
 				array_merge(
 					$common,
 					array(
-						'description'       => __( 'Editor-approved article summary.', 'article-insights-for-geo' ),
+						'description'       => __( 'Editor-approved article summary.', 'seoblox' ),
 						'sanitize_callback' => array( $this, 'sanitize_tldr' ),
 						'default'           => '',
 					)
@@ -212,35 +299,27 @@ final class AIG_Plugin {
 			$this->register_choice_meta( $post_type, self::META_PLACEMENT, array( 'auto', 'manual' ), 'auto' );
 		}
 
-		register_block_type(
-			'article-insights/details',
-			array(
+		$blocks = array(
+			'seoblox/article-details'   => 'render_details_block',
+			'seoblox/tldr'              => 'render_tldr_block',
+			// Deprecated aliases: leave existing serialized post content intact.
+			'article-insights/details' => 'render_details_block',
+			'article-insights/tldr'    => 'render_tldr_block',
+		);
+		foreach ( $blocks as $name => $callback ) {
+			register_block_type( $name, array(
 				'api_version'     => 2,
-				'editor_script'   => 'aig-editor',
-				'editor_style'    => 'aig-editor',
-				'style'           => 'aig-frontend',
-				'render_callback' => array( $this, 'render_details_block' ),
+				'editor_script'   => 'seoblox-editor',
+				'editor_style'    => 'seoblox-editor',
+				'style'           => 'seoblox-frontend',
+				'render_callback' => array( $this, $callback ),
 				'supports'        => array(
 					'html'     => false,
 					'multiple' => false,
+					'inserter' => 0 !== strpos( $name, 'article-insights/' ),
 				),
-			)
-		);
-
-		register_block_type(
-			'article-insights/tldr',
-			array(
-				'api_version'     => 2,
-				'editor_script'   => 'aig-editor',
-				'editor_style'    => 'aig-editor',
-				'style'           => 'aig-frontend',
-				'render_callback' => array( $this, 'render_tldr_block' ),
-				'supports'        => array(
-					'html'     => false,
-					'multiple' => false,
-				),
-			)
-		);
+			) );
+		}
 	}
 
 	/**
@@ -286,7 +365,7 @@ final class AIG_Plugin {
 	 */
 	public function can_edit_meta( $allowed, $meta_key, $object_id ) {
 		unset( $allowed, $meta_key );
-		return current_user_can( 'edit_post', $object_id );
+		return $this->eligible_post( $object_id ) && current_user_can( 'edit_post', $object_id );
 	}
 
 	/**
@@ -296,6 +375,10 @@ final class AIG_Plugin {
 	 * @return string
 	 */
 	public function sanitize_tldr( $value ) {
+		if ( $this->migrating_meta ) {
+			// Preserve stored legacy markup verbatim; normal reads and edits still sanitize.
+			return (string) $value;
+		}
 		$allowed = array(
 			'p'      => array(),
 			'br'     => array(),
@@ -314,7 +397,7 @@ final class AIG_Plugin {
 		);
 
 		$value = wp_kses( (string) $value, $allowed );
-		return apply_filters( 'aig_sanitized_tldr', trim( $value ) );
+		return $this->filter( 'sanitized_tldr', trim( $value ) );
 	}
 
 	/**
@@ -329,8 +412,8 @@ final class AIG_Plugin {
 		}
 
 		wp_localize_script(
-			'aig-editor',
-			'aigEditor',
+			'seoblox-editor',
+			'seobloxEditor',
 			array(
 				'enabledPostTypes' => $this->enabled_post_types(),
 				'meta'             => array(
@@ -354,19 +437,19 @@ final class AIG_Plugin {
 			return;
 		}
 
-		wp_enqueue_style( 'aig-frontend' );
-		wp_enqueue_script( 'aig-frontend-script' );
+		wp_enqueue_style( 'seoblox-frontend' );
+		wp_enqueue_script( 'seoblox-frontend-script' );
 		$settings = $this->settings();
 		$padding  = 'compact' === $settings['spacing'] ? '14px 18px' : '18px 22px';
 		$css      = sprintf(
-			':root{--aig-background:%1$s;--aig-accent:%2$s;--aig-text:%3$s;--aig-radius:%4$dpx;--aig-padding:%5$s;}',
+			':root{--seoblox-background:%1$s;--seoblox-accent:%2$s;--seoblox-text:%3$s;--seoblox-radius:%4$dpx;--seoblox-padding:%5$s;}',
 			esc_html( $settings['background'] ),
 			esc_html( $settings['accent'] ),
 			esc_html( $settings['text_color'] ),
 			(int) $settings['border_radius'],
 			esc_html( $padding )
 		);
-		wp_add_inline_style( 'aig-frontend', $css );
+		wp_add_inline_style( 'seoblox-frontend', $css );
 	}
 
 	/**
@@ -381,9 +464,22 @@ final class AIG_Plugin {
 			wp_is_post_revision( $post_id )
 			|| wp_is_post_autosave( $post_id )
 			|| ! $post instanceof WP_Post
-			|| 'attachment' === $post->post_type
+			|| ! $this->eligible_post( $post_id )
 		) {
 			return;
+		}
+
+		// save_post precedes REST meta updates: seed old fields first, then let
+		// submitted new values (including an empty TL;DR) overwrite them.
+		foreach ( self::legacy_meta_keys() as $key => $legacy ) {
+			if ( ! metadata_exists( 'post', $post_id, $key ) && metadata_exists( 'post', $post_id, $legacy ) ) {
+				$this->migrating_meta = true;
+				try {
+					update_post_meta( $post_id, $key, wp_slash( get_post_meta( $post_id, $legacy, true ) ) );
+				} finally {
+					$this->migrating_meta = false;
+				}
+			}
 		}
 
 		$word_count = $this->count_words( $post->post_content );
@@ -427,10 +523,10 @@ final class AIG_Plugin {
 	private function minutes_from_word_count( $word_count, $post_id ) {
 		$settings = $this->settings();
 		$wpm      = max( 1, (int) $settings['words_per_minute'] );
-		$wpm      = max( 1, (int) apply_filters( 'aig_words_per_minute', $wpm, $post_id ) );
+		$wpm      = max( 1, (int) $this->filter( 'words_per_minute', $wpm, $post_id ) );
 		$minutes  = max( 1, (int) ceil( $word_count / $wpm ) );
 
-		return max( 1, (int) apply_filters( 'aig_reading_minutes', $minutes, $word_count, $post_id ) );
+		return max( 1, (int) $this->filter( 'reading_minutes', $minutes, $word_count, $post_id ) );
 	}
 
 	/**
@@ -440,7 +536,11 @@ final class AIG_Plugin {
 	 * @return int
 	 */
 	public function get_reading_minutes( $post_id ) {
-		$cached = get_post_meta( $post_id, self::META_WORD_COUNT, true );
+		if ( ! $this->eligible_post( $post_id ) ) {
+			return 0;
+		}
+
+		$cached = $this->post_meta( $post_id, self::META_WORD_COUNT );
 		if ( '' === $cached ) {
 			$cached = $this->count_words( (string) get_post_field( 'post_content', $post_id ) );
 		}
@@ -470,7 +570,7 @@ final class AIG_Plugin {
 		if (
 			! $post_id
 			|| (int) $post_id !== (int) get_queried_object_id()
-			|| 'manual' === get_post_meta( $post_id, self::META_PLACEMENT, true )
+			|| 'manual' === $this->post_meta( $post_id, self::META_PLACEMENT )
 		) {
 			return $content;
 		}
@@ -497,6 +597,7 @@ final class AIG_Plugin {
 		if (
 			! empty( $settings['auto_details'] )
 			&& $this->component_is_visible( $post_id, self::META_DETAILS, 'show_details' )
+			&& ! has_block( 'seoblox/article-details', $content )
 			&& ! has_block( 'article-insights/details', $content )
 		) {
 			$output .= $this->render_details( $post_id );
@@ -505,6 +606,7 @@ final class AIG_Plugin {
 		if (
 			! empty( $settings['auto_tldr'] )
 			&& $this->component_is_visible( $post_id, self::META_SHOW_TLDR, 'show_tldr' )
+			&& ! has_block( 'seoblox/tldr', $content )
 			&& ! has_block( 'article-insights/tldr', $content )
 		) {
 			$output .= $this->render_tldr( $post_id );
@@ -532,7 +634,7 @@ final class AIG_Plugin {
 		}
 
 		$post_id = get_queried_object_id();
-		if ( ! $post_id || 'manual' === get_post_meta( $post_id, self::META_PLACEMENT, true ) ) {
+		if ( ! $post_id || 'manual' === $this->post_meta( $post_id, self::META_PLACEMENT ) ) {
 			return;
 		}
 
@@ -543,7 +645,7 @@ final class AIG_Plugin {
 		}
 
 		$this->page_output_rendered = true;
-		echo '<div class="aig-builder-fallback" data-aig-builder-fallback>' . $output . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Component renderers escape dynamic values.
+		echo '<div class="seoblox-builder-fallback aig-builder-fallback" data-seoblox-builder-fallback>' . $output . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Component renderers escape dynamic values.
 	}
 
 	/**
@@ -623,7 +725,7 @@ final class AIG_Plugin {
 	 * @return bool
 	 */
 	private function component_is_visible( $post_id, $meta_key, $settings_option ) {
-		$override = get_post_meta( $post_id, $meta_key, true );
+		$override = $this->post_meta( $post_id, $meta_key );
 		if ( 'show' === $override ) {
 			return true;
 		}
@@ -699,31 +801,35 @@ final class AIG_Plugin {
 	 * @return string
 	 */
 	public function render_details( $post_id ) {
+		if ( ! $this->eligible_post( $post_id ) ) {
+			return '';
+		}
+
 		$settings       = $this->settings();
 		$published_time = (int) get_post_time( 'U', true, $post_id );
 		$modified_time  = (int) get_post_modified_time( 'U', true, $post_id );
 		$is_modified    = $modified_time > $published_time;
 		$label          = $is_modified ? $settings['modified_label'] : $settings['published_label'];
-		$label          = apply_filters( 'aig_date_label', $label, $is_modified, $post_id );
+		$label          = $this->filter( 'date_label', $label, $is_modified, $post_id );
 		$date           = $is_modified ? get_the_modified_date( '', $post_id ) : get_the_date( '', $post_id );
 		$iso            = $is_modified
 			? get_post_modified_time( DATE_W3C, false, $post_id )
 			: get_post_time( DATE_W3C, false, $post_id );
 		$minutes        = $this->get_reading_minutes( $post_id );
 		$read_label     = str_replace( '%s', number_format_i18n( $minutes ), $settings['read_label'] );
-		$read_label     = apply_filters( 'aig_reading_label', $read_label, $minutes, $post_id );
+		$read_label     = $this->filter( 'reading_label', $read_label, $minutes, $post_id );
 
 		$clock_icon = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>';
 		$book_icon  = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5A2.5 2.5 0 0 1 20 21.5z"></path></svg>';
 
-		$html  = '<aside class="aig-article-details" aria-label="' . esc_attr__( 'Article details', 'article-insights-for-geo' ) . '">';
-		$html .= '<div class="aig-article-details__item"><span class="aig-article-details__icon">' . $clock_icon . '</span>';
+		$html  = '<aside class="seoblox-article-details aig-article-details" aria-label="' . esc_attr__( 'Article details', 'seoblox' ) . '">';
+		$html .= '<div class="seoblox-article-details__item aig-article-details__item"><span class="seoblox-article-details__icon aig-article-details__icon">' . $clock_icon . '</span>';
 		$html .= '<span><strong>' . esc_html( $label ) . '</strong> <time datetime="' . esc_attr( $iso ) . '">' . esc_html( $date ) . '</time></span></div>';
-		$html .= '<span class="aig-article-details__divider" aria-hidden="true"></span>';
-		$html .= '<div class="aig-article-details__item"><span class="aig-article-details__icon">' . $book_icon . '</span>';
+		$html .= '<span class="seoblox-article-details__divider aig-article-details__divider" aria-hidden="true"></span>';
+		$html .= '<div class="seoblox-article-details__item aig-article-details__item"><span class="seoblox-article-details__icon aig-article-details__icon">' . $book_icon . '</span>';
 		$html .= '<strong>' . esc_html( $read_label ) . '</strong></div></aside>';
 
-		return apply_filters( 'aig_article_details_html', $html, $post_id );
+		return $this->filter( 'article_details_html', $html, $post_id );
 	}
 
 	/**
@@ -733,12 +839,16 @@ final class AIG_Plugin {
 	 * @return string
 	 */
 	public function render_tldr( $post_id ) {
-		$tldr = $this->sanitize_tldr( get_post_meta( $post_id, self::META_TLDR, true ) );
+		if ( ! $this->eligible_post( $post_id ) ) {
+			return '';
+		}
+
+		$tldr = $this->sanitize_tldr( $this->post_meta( $post_id, self::META_TLDR ) );
 		if ( '' === trim( wp_strip_all_tags( $tldr ) ) ) {
 			return '';
 		}
 
-		$format   = get_post_meta( $post_id, self::META_TLDR_FORMAT, true );
+		$format   = $this->post_meta( $post_id, self::META_TLDR_FORMAT );
 		$has_list = false !== stripos( $tldr, '<ul' ) || false !== stripos( $tldr, '<ol' );
 		$has_item = false !== stripos( $tldr, '<li' );
 		$has_para = false !== stripos( $tldr, '<p' );
@@ -751,11 +861,11 @@ final class AIG_Plugin {
 			$tldr = '<p>' . $tldr . '</p>';
 		}
 
-		$html  = '<aside class="aig-tldr" aria-labelledby="aig-tldr-title-' . (int) $post_id . '">';
-		$html .= '<h2 class="aig-tldr__title" id="aig-tldr-title-' . (int) $post_id . '">' . esc_html__( 'TL;DR', 'article-insights-for-geo' ) . '</h2>';
-		$html .= '<div class="aig-tldr__content">' . $tldr . '</div></aside>';
+		$html  = '<aside class="seoblox-tldr aig-tldr" aria-labelledby="seoblox-tldr-title-' . (int) $post_id . '">';
+		$html .= '<h2 class="seoblox-tldr__title aig-tldr__title" id="seoblox-tldr-title-' . (int) $post_id . '">' . esc_html__( 'TL;DR', 'seoblox' ) . '</h2>';
+		$html .= '<div class="seoblox-tldr__content aig-tldr__content">' . $tldr . '</div></aside>';
 
-		return apply_filters( 'aig_tldr_html', $html, $post_id, $tldr );
+		return $this->filter( 'tldr_html', $html, $post_id, $tldr );
 	}
 
 	/**
@@ -770,8 +880,23 @@ final class AIG_Plugin {
 			return $data;
 		}
 
+		// SEOblox never outputs Product, Offer, AggregateRating-on-product,
+		// or Merchant schema. WooGEO owns commerce; only an existing Article
+		// entity's dateModified may be changed here. Never emit a second graph.
+		$types    = isset( $data['@type'] ) ? (array) $data['@type'] : array();
+		$commerce = array( 'Product', 'ProductGroup', 'Offer', 'AggregateOffer', 'AggregateRating', 'Merchant', 'MerchantReturnPolicy', 'OnlineStore' );
+		$articles = array(
+			'Article', 'BlogPosting', 'NewsArticle', 'TechArticle', 'ScholarlyArticle',
+			'MedicalScholarlyArticle', 'Report', 'SocialMediaPosting', 'LiveBlogPosting',
+			'DiscussionForumPosting', 'AdvertiserContentArticle', 'SatiricalArticle',
+			'AnalysisNewsArticle', 'AskPublicNewsArticle', 'BackgroundNewsArticle',
+			'OpinionNewsArticle', 'ReportageNewsArticle', 'ReviewNewsArticle',
+		);
+		if ( array_intersect( $types, $commerce ) || ( $types && ! array_intersect( $types, $articles ) ) ) {
+			return $data;
+		}
 		$post_id = get_queried_object_id();
-		if ( $post_id ) {
+		if ( $post_id && $this->eligible_post( $post_id ) ) {
 			$data['dateModified'] = get_post_modified_time( DATE_W3C, false, $post_id );
 		}
 
@@ -787,8 +912,8 @@ final class AIG_Plugin {
 	public function settings_link( $links ) {
 		array_unshift(
 			$links,
-			'<a href="' . esc_url( admin_url( 'options-general.php?page=article-insights-for-geo' ) ) . '">' .
-			esc_html__( 'Settings', 'article-insights-for-geo' ) .
+			'<a href="' . esc_url( admin_url( 'options-general.php?page=seoblox' ) ) . '">' .
+			esc_html__( 'Settings', 'seoblox' ) .
 			'</a>'
 		);
 		return $links;

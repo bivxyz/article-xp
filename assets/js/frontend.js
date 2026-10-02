@@ -2,7 +2,7 @@
 	'use strict';
 
 	function placeBuilderFallback() {
-		var fallback = document.querySelector( '[data-aig-builder-fallback]' );
+		var fallback = document.querySelector( '[data-seoblox-builder-fallback]' );
 		if ( ! fallback ) {
 			return;
 		}

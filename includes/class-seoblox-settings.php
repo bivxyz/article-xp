@@ -2,25 +2,25 @@
 /**
  * Admin settings screen.
  *
- * @package ArticleInsightsForGEO
+ * @package SEOblox
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-final class AIG_Settings {
+final class SEOblox_Settings {
 	/**
 	 * Plugin controller.
 	 *
-	 * @var AIG_Plugin
+	 * @var SEOblox_Plugin
 	 */
 	private $plugin;
 
 	/**
 	 * Constructor.
 	 *
-	 * @param AIG_Plugin $plugin Plugin controller.
+	 * @param SEOblox_Plugin $plugin Plugin controller.
 	 */
 	public function __construct( $plugin ) {
 		$this->plugin = $plugin;
@@ -36,22 +36,22 @@ final class AIG_Settings {
 	 * @return void
 	 */
 	public function enqueue_assets( $hook_suffix ) {
-		if ( 'settings_page_article-insights-for-geo' !== $hook_suffix ) {
+		if ( 'settings_page_seoblox' !== $hook_suffix ) {
 			return;
 		}
 
-		wp_enqueue_style( 'aig-frontend' );
+		wp_enqueue_style( 'seoblox-frontend' );
 		wp_enqueue_style(
-			'aig-settings',
-			AIG_PLUGIN_URL . 'assets/css/settings.css',
-			array( 'aig-frontend' ),
-			AIG_VERSION
+			'seoblox-settings',
+			SEOBLOX_PLUGIN_URL . 'assets/css/settings.css',
+			array( 'seoblox-frontend' ),
+			SEOBLOX_VERSION
 		);
 		wp_enqueue_script(
-			'aig-settings',
-			AIG_PLUGIN_URL . 'assets/js/settings.js',
+			'seoblox-settings',
+			SEOBLOX_PLUGIN_URL . 'assets/js/settings.js',
 			array(),
-			AIG_VERSION,
+			SEOBLOX_VERSION,
 			true
 		);
 	}
@@ -63,10 +63,10 @@ final class AIG_Settings {
 	 */
 	public function add_page() {
 		add_options_page(
-			__( 'Article XP', 'article-insights-for-geo' ),
-			__( 'Article XP', 'article-insights-for-geo' ),
+			__( 'SEOblox', 'seoblox' ),
+			__( 'SEOblox', 'seoblox' ),
 			'manage_options',
-			'article-insights-for-geo',
+			'seoblox',
 			array( $this, 'render_page' )
 		);
 	}
@@ -78,42 +78,42 @@ final class AIG_Settings {
 	 */
 	public function register_settings() {
 		register_setting(
-			'aig_settings_group',
-			AIG_Plugin::OPTION_KEY,
+			'seoblox_settings_group',
+			SEOblox_Plugin::OPTION_KEY,
 			array(
 				'type'              => 'array',
-				'default'           => AIG_Plugin::defaults(),
+				'default'           => SEOblox_Plugin::defaults(),
 				'sanitize_callback' => array( $this, 'sanitize' ),
 			)
 		);
 
 		add_settings_section(
-			'aig_content',
-			__( 'Content and placement', 'article-insights-for-geo' ),
+			'seoblox_content',
+			__( 'Content and placement', 'seoblox' ),
 			static function () {
-				echo '<p>' . esc_html__( 'Choose where Article XP is available and which elements are inserted automatically.', 'article-insights-for-geo' ) . '</p>';
+				echo '<p>' . esc_html__( 'Choose where SEOblox is available and which elements are inserted automatically.', 'seoblox' ) . '</p>';
 			},
-			'article-insights-for-geo'
+			'seoblox'
 		);
 
-		$this->add_field( 'post_types', __( 'Content types', 'article-insights-for-geo' ), array( $this, 'render_post_types' ), 'aig_content' );
-		$this->add_field( 'components', __( 'Visible elements', 'article-insights-for-geo' ), array( $this, 'render_components' ), 'aig_content' );
-		$this->add_field( 'automatic', __( 'Automatic placement', 'article-insights-for-geo' ), array( $this, 'render_automatic' ), 'aig_content' );
-		$this->add_field( 'wpm', __( 'Reading speed', 'article-insights-for-geo' ), array( $this, 'render_wpm' ), 'aig_content' );
+		$this->add_field( 'post_types', __( 'Content types', 'seoblox' ), array( $this, 'render_post_types' ), 'seoblox_content' );
+		$this->add_field( 'components', __( 'Visible elements', 'seoblox' ), array( $this, 'render_components' ), 'seoblox_content' );
+		$this->add_field( 'automatic', __( 'Automatic placement', 'seoblox' ), array( $this, 'render_automatic' ), 'seoblox_content' );
+		$this->add_field( 'wpm', __( 'Reading speed', 'seoblox' ), array( $this, 'render_wpm' ), 'seoblox_content' );
 
-		add_settings_section( 'aig_labels', __( 'Labels', 'article-insights-for-geo' ), '__return_false', 'article-insights-for-geo' );
-		$this->add_field( 'published_label', __( 'Published label', 'article-insights-for-geo' ), array( $this, 'render_text' ), 'aig_labels', 'published_label' );
-		$this->add_field( 'modified_label', __( 'Modified label', 'article-insights-for-geo' ), array( $this, 'render_text' ), 'aig_labels', 'modified_label' );
-		$this->add_field( 'read_label', __( 'Reading-time label', 'article-insights-for-geo' ), array( $this, 'render_read_label' ), 'aig_labels' );
+		add_settings_section( 'seoblox_labels', __( 'Labels', 'seoblox' ), '__return_false', 'seoblox' );
+		$this->add_field( 'published_label', __( 'Published label', 'seoblox' ), array( $this, 'render_text' ), 'seoblox_labels', 'published_label' );
+		$this->add_field( 'modified_label', __( 'Modified label', 'seoblox' ), array( $this, 'render_text' ), 'seoblox_labels', 'modified_label' );
+		$this->add_field( 'read_label', __( 'Reading-time label', 'seoblox' ), array( $this, 'render_read_label' ), 'seoblox_labels' );
 
-		add_settings_section( 'aig_appearance', __( 'Appearance', 'article-insights-for-geo' ), '__return_false', 'article-insights-for-geo' );
-		$this->add_field( 'colors', __( 'Colors', 'article-insights-for-geo' ), array( $this, 'render_colors' ), 'aig_appearance' );
-		$this->add_field( 'radius', __( 'Border radius', 'article-insights-for-geo' ), array( $this, 'render_radius' ), 'aig_appearance' );
-		$this->add_field( 'spacing', __( 'Spacing', 'article-insights-for-geo' ), array( $this, 'render_spacing' ), 'aig_appearance' );
-		$this->add_field( 'preview', __( 'Live preview', 'article-insights-for-geo' ), array( $this, 'render_preview' ), 'aig_appearance' );
+		add_settings_section( 'seoblox_appearance', __( 'Appearance', 'seoblox' ), '__return_false', 'seoblox' );
+		$this->add_field( 'colors', __( 'Colors', 'seoblox' ), array( $this, 'render_colors' ), 'seoblox_appearance' );
+		$this->add_field( 'radius', __( 'Border radius', 'seoblox' ), array( $this, 'render_radius' ), 'seoblox_appearance' );
+		$this->add_field( 'spacing', __( 'Spacing', 'seoblox' ), array( $this, 'render_spacing' ), 'seoblox_appearance' );
+		$this->add_field( 'preview', __( 'Live preview', 'seoblox' ), array( $this, 'render_preview' ), 'seoblox_appearance' );
 
-		add_settings_section( 'aig_schema', __( 'Structured data', 'article-insights-for-geo' ), '__return_false', 'article-insights-for-geo' );
-		$this->add_field( 'schema_mode', __( 'Compatibility mode', 'article-insights-for-geo' ), array( $this, 'render_schema' ), 'aig_schema' );
+		add_settings_section( 'seoblox_schema', __( 'Structured data', 'seoblox' ), '__return_false', 'seoblox' );
+		$this->add_field( 'schema_mode', __( 'Compatibility mode', 'seoblox' ), array( $this, 'render_schema' ), 'seoblox_schema' );
 	}
 
 	/**
@@ -127,7 +127,7 @@ final class AIG_Settings {
 	 * @return void
 	 */
 	private function add_field( $id, $label, $callback, $section, $arg = null ) {
-		add_settings_field( $id, $label, $callback, 'article-insights-for-geo', $section, array( 'key' => $arg ) );
+		add_settings_field( $id, $label, $callback, 'seoblox', $section, array( 'key' => $arg ) );
 	}
 
 	/**
@@ -137,10 +137,10 @@ final class AIG_Settings {
 	 * @return array<string,mixed>
 	 */
 	public function sanitize( $input ) {
-		$defaults = AIG_Plugin::defaults();
+		$defaults = SEOblox_Plugin::defaults();
 		$input    = is_array( $input ) ? $input : array();
 		$public   = get_post_types( array( 'public' => true ), 'names' );
-		unset( $public['attachment'] );
+		$public = array_filter( $public, array( 'SEOblox_Plugin', 'is_content_post_type' ) );
 
 		$types = isset( $input['post_types'] ) && is_array( $input['post_types'] )
 			? array_intersect( array_map( 'sanitize_key', $input['post_types'] ), array_values( $public ) )
@@ -150,9 +150,9 @@ final class AIG_Settings {
 		if ( false === strpos( $read_label, '%s' ) ) {
 			$read_label = $defaults['read_label'];
 			add_settings_error(
-				AIG_Plugin::OPTION_KEY,
-				'aig_read_label',
-				__( 'The reading-time label must contain %s for the number of minutes.', 'article-insights-for-geo' )
+				SEOblox_Plugin::OPTION_KEY,
+				'seoblox_read_label',
+				__( 'The reading-time label must contain %s for the number of minutes.', 'seoblox' )
 			);
 		}
 
@@ -164,18 +164,18 @@ final class AIG_Settings {
 			$background = $defaults['background'];
 			$text_color = $defaults['text_color'];
 			add_settings_error(
-				AIG_Plugin::OPTION_KEY,
-				'aig_text_contrast',
-				__( 'Background and text colors were reset because they did not meet accessible contrast requirements.', 'article-insights-for-geo' )
+				SEOblox_Plugin::OPTION_KEY,
+				'seoblox_text_contrast',
+				__( 'Background and text colors were reset because they did not meet accessible contrast requirements.', 'seoblox' )
 			);
 		}
 
 		if ( $this->contrast_ratio( '#ffffff', $accent ) < 3 ) {
 			$accent = $defaults['accent'];
 			add_settings_error(
-				AIG_Plugin::OPTION_KEY,
-				'aig_accent_contrast',
-				__( 'The accent color was reset because it did not have enough contrast against the icon background.', 'article-insights-for-geo' )
+				SEOblox_Plugin::OPTION_KEY,
+				'seoblox_accent_contrast',
+				__( 'The accent color was reset because it did not have enough contrast against the icon background.', 'seoblox' )
 			);
 		}
 
@@ -268,12 +268,14 @@ final class AIG_Settings {
 	public function render_post_types() {
 		$values = $this->values();
 		$types  = get_post_types( array( 'public' => true ), 'objects' );
-		unset( $types['attachment'] );
+		$types = array_filter( $types, static function ( $type ) {
+			return SEOblox_Plugin::is_content_post_type( $type->name );
+		} );
 
 		foreach ( $types as $type ) {
 			printf(
 				'<label style="display:block;margin-bottom:6px"><input type="checkbox" name="%1$s[post_types][]" value="%2$s" %3$s> %4$s</label>',
-				esc_attr( AIG_Plugin::OPTION_KEY ),
+				esc_attr( SEOblox_Plugin::OPTION_KEY ),
 				esc_attr( $type->name ),
 				checked( in_array( $type->name, $values['post_types'], true ), true, false ),
 				esc_html( $type->labels->name )
@@ -287,8 +289,8 @@ final class AIG_Settings {
 	 * @return void
 	 */
 	public function render_components() {
-		$this->checkbox( 'show_details', __( 'Show published/updated date and reading time', 'article-insights-for-geo' ) );
-		$this->checkbox( 'show_tldr', __( 'Show TL;DR when an approved summary exists', 'article-insights-for-geo' ) );
+		$this->checkbox( 'show_details', __( 'Show published/updated date and reading time', 'seoblox' ) );
+		$this->checkbox( 'show_tldr', __( 'Show TL;DR when an approved summary exists', 'seoblox' ) );
 	}
 
 	/**
@@ -297,9 +299,9 @@ final class AIG_Settings {
 	 * @return void
 	 */
 	public function render_automatic() {
-		$this->checkbox( 'auto_details', __( 'Insert article details before content', 'article-insights-for-geo' ) );
-		$this->checkbox( 'auto_tldr', __( 'Insert TL;DR directly below article details', 'article-insights-for-geo' ) );
-		echo '<p class="description">' . esc_html__( 'Editors can switch a post to manual placement and insert the plugin blocks.', 'article-insights-for-geo' ) . '</p>';
+		$this->checkbox( 'auto_details', __( 'Insert article details before content', 'seoblox' ) );
+		$this->checkbox( 'auto_tldr', __( 'Insert TL;DR directly below article details', 'seoblox' ) );
+		echo '<p class="description">' . esc_html__( 'Editors can switch a post to manual placement and insert the plugin blocks.', 'seoblox' ) . '</p>';
 	}
 
 	/**
@@ -313,7 +315,7 @@ final class AIG_Settings {
 		$values = $this->values();
 		printf(
 			'<label style="display:block;margin-bottom:6px"><input type="checkbox" name="%1$s[%2$s]" value="1" %3$s> %4$s</label>',
-			esc_attr( AIG_Plugin::OPTION_KEY ),
+			esc_attr( SEOblox_Plugin::OPTION_KEY ),
 			esc_attr( $key ),
 			checked( ! empty( $values[ $key ] ), true, false ),
 			esc_html( $label )
@@ -329,9 +331,9 @@ final class AIG_Settings {
 		$values = $this->values();
 		printf(
 			'<input class="small-text" type="number" min="50" max="600" step="1" name="%1$s[words_per_minute]" value="%2$d"> %3$s',
-			esc_attr( AIG_Plugin::OPTION_KEY ),
+			esc_attr( SEOblox_Plugin::OPTION_KEY ),
 			(int) $values['words_per_minute'],
-			esc_html__( 'words per minute', 'article-insights-for-geo' )
+			esc_html__( 'words per minute', 'seoblox' )
 		);
 	}
 
@@ -346,7 +348,7 @@ final class AIG_Settings {
 		$values = $this->values();
 		printf(
 			'<input class="regular-text" type="text" name="%1$s[%2$s]" value="%3$s">',
-			esc_attr( AIG_Plugin::OPTION_KEY ),
+			esc_attr( SEOblox_Plugin::OPTION_KEY ),
 			esc_attr( $key ),
 			esc_attr( $values[ $key ] )
 		);
@@ -359,7 +361,7 @@ final class AIG_Settings {
 	 */
 	public function render_read_label() {
 		$this->render_text( array( 'key' => 'read_label' ) );
-		echo '<p class="description">' . esc_html__( 'Use %s where the number of minutes should appear.', 'article-insights-for-geo' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Use %s where the number of minutes should appear.', 'seoblox' ) . '</p>';
 	}
 
 	/**
@@ -371,27 +373,27 @@ final class AIG_Settings {
 		$values = $this->values();
 		foreach (
 			array(
-				'background' => __( 'Background', 'article-insights-for-geo' ),
-				'accent'     => __( 'Accent', 'article-insights-for-geo' ),
-				'text_color' => __( 'Text', 'article-insights-for-geo' ),
+				'background' => __( 'Background', 'seoblox' ),
+				'accent'     => __( 'Accent', 'seoblox' ),
+				'text_color' => __( 'Text', 'seoblox' ),
 			) as $key => $label
 		) {
 			printf(
 				'<label style="display:inline-flex;align-items:center;gap:8px;margin:0 18px 8px 0">' .
-				'<span style="width:22px;height:22px;border:1px solid #8c8f94;border-radius:3px;background:%3$s" data-aig-swatch="%1$s[%2$s]" aria-hidden="true"></span>' .
+				'<span style="width:22px;height:22px;border:1px solid #8c8f94;border-radius:3px;background:%3$s" data-seoblox-swatch="%1$s[%2$s]" aria-hidden="true"></span>' .
 				'<span>%4$s</span>' .
 				'<input class="regular-text code" style="width:9ch" type="text" inputmode="text" maxlength="7" pattern="#[0-9A-Fa-f]{6}" ' .
 				'name="%1$s[%2$s]" value="%3$s" aria-label="%4$s %5$s" title="%6$s">' .
 				'</label>',
-				esc_attr( AIG_Plugin::OPTION_KEY ),
+				esc_attr( SEOblox_Plugin::OPTION_KEY ),
 				esc_attr( $key ),
 				esc_attr( $values[ $key ] ),
 				esc_html( $label ),
-				esc_attr__( 'HEX color', 'article-insights-for-geo' ),
-				esc_attr__( 'Enter a six-digit HEX color, including the # symbol.', 'article-insights-for-geo' )
+				esc_attr__( 'HEX color', 'seoblox' ),
+				esc_attr__( 'Enter a six-digit HEX color, including the # symbol.', 'seoblox' )
 			);
 		}
-		echo '<p class="description">' . esc_html__( 'Use six-digit HEX values in #RRGGBB format.', 'article-insights-for-geo' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Use six-digit HEX values in #RRGGBB format.', 'seoblox' ) . '</p>';
 	}
 
 	/**
@@ -403,7 +405,7 @@ final class AIG_Settings {
 		$values = $this->values();
 		printf(
 			'<input class="small-text" type="number" min="0" max="40" name="%1$s[border_radius]" value="%2$d"> px',
-			esc_attr( AIG_Plugin::OPTION_KEY ),
+			esc_attr( SEOblox_Plugin::OPTION_KEY ),
 			(int) $values['border_radius']
 		);
 	}
@@ -415,9 +417,9 @@ final class AIG_Settings {
 	 */
 	public function render_spacing() {
 		$values = $this->values();
-		echo '<select name="' . esc_attr( AIG_Plugin::OPTION_KEY ) . '[spacing]">';
-		echo '<option value="comfortable" ' . selected( $values['spacing'], 'comfortable', false ) . '>' . esc_html__( 'Comfortable', 'article-insights-for-geo' ) . '</option>';
-		echo '<option value="compact" ' . selected( $values['spacing'], 'compact', false ) . '>' . esc_html__( 'Compact', 'article-insights-for-geo' ) . '</option>';
+		echo '<select name="' . esc_attr( SEOblox_Plugin::OPTION_KEY ) . '[spacing]">';
+		echo '<option value="comfortable" ' . selected( $values['spacing'], 'comfortable', false ) . '>' . esc_html__( 'Comfortable', 'seoblox' ) . '</option>';
+		echo '<option value="compact" ' . selected( $values['spacing'], 'compact', false ) . '>' . esc_html__( 'Compact', 'seoblox' ) . '</option>';
 		echo '</select>';
 	}
 
@@ -430,7 +432,7 @@ final class AIG_Settings {
 		$values  = $this->values();
 		$padding = 'compact' === $values['spacing'] ? '14px 18px' : '18px 22px';
 		$style   = sprintf(
-			'--aig-background:%1$s;--aig-accent:%2$s;--aig-text:%3$s;--aig-radius:%4$dpx;--aig-padding:%5$s;',
+			'--seoblox-background:%1$s;--seoblox-accent:%2$s;--seoblox-text:%3$s;--seoblox-radius:%4$dpx;--seoblox-padding:%5$s;',
 			esc_attr( $values['background'] ),
 			esc_attr( $values['accent'] ),
 			esc_attr( $values['text_color'] ),
@@ -441,31 +443,31 @@ final class AIG_Settings {
 		$clock_icon = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>';
 		$book_icon  = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5A2.5 2.5 0 0 1 20 21.5z"></path></svg>';
 		?>
-		<div class="aig-settings-preview-frame">
-			<div class="aig-settings-preview" style="<?php echo esc_attr( $style ); ?>">
-				<aside class="aig-article-details" aria-label="<?php esc_attr_e( 'Article details preview', 'article-insights-for-geo' ); ?>">
-					<div class="aig-article-details__item">
-						<span class="aig-article-details__icon"><?php echo $clock_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static SVG. ?></span>
+		<div class="seoblox-settings-preview-frame aig-settings-preview-frame">
+			<div class="seoblox-settings-preview aig-settings-preview" style="<?php echo esc_attr( $style ); ?>">
+				<aside class="seoblox-article-details aig-article-details" aria-label="<?php esc_attr_e( 'Article details preview', 'seoblox' ); ?>">
+					<div class="seoblox-article-details__item aig-article-details__item">
+						<span class="seoblox-article-details__icon aig-article-details__icon"><?php echo $clock_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static SVG. ?></span>
 						<span>
-							<strong data-aig-preview-modified><?php echo esc_html( $values['modified_label'] ); ?></strong>
+							<strong data-seoblox-preview-modified><?php echo esc_html( $values['modified_label'] ); ?></strong>
 							<time datetime="2026-07-28">July 28, 2026</time>
 						</span>
 					</div>
-					<span class="aig-article-details__divider" aria-hidden="true"></span>
-					<div class="aig-article-details__item">
-						<span class="aig-article-details__icon"><?php echo $book_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static SVG. ?></span>
-						<strong data-aig-preview-read><?php echo esc_html( $read_label ); ?></strong>
+					<span class="seoblox-article-details__divider aig-article-details__divider" aria-hidden="true"></span>
+					<div class="seoblox-article-details__item aig-article-details__item">
+						<span class="seoblox-article-details__icon aig-article-details__icon"><?php echo $book_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static SVG. ?></span>
+						<strong data-seoblox-preview-read><?php echo esc_html( $read_label ); ?></strong>
 					</div>
 				</aside>
-				<aside class="aig-tldr" aria-labelledby="aig-settings-preview-title">
-					<h3 class="aig-tldr__title" id="aig-settings-preview-title"><?php esc_html_e( 'TL;DR', 'article-insights-for-geo' ); ?></h3>
-					<div class="aig-tldr__content">
-						<p><?php esc_html_e( 'This preview uses the same styles readers will see at the beginning of an article.', 'article-insights-for-geo' ); ?></p>
+				<aside class="seoblox-tldr aig-tldr" aria-labelledby="seoblox-settings-preview-title">
+					<h3 class="seoblox-tldr__title aig-tldr__title" id="seoblox-settings-preview-title"><?php esc_html_e( 'TL;DR', 'seoblox' ); ?></h3>
+					<div class="seoblox-tldr__content aig-tldr__content">
+						<p><?php esc_html_e( 'This preview uses the same styles readers will see at the beginning of an article.', 'seoblox' ); ?></p>
 					</div>
 				</aside>
 			</div>
 		</div>
-		<p class="description"><?php esc_html_e( 'Changes appear here immediately and are applied to articles after you save.', 'article-insights-for-geo' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Changes appear here immediately and are applied to articles after you save.', 'seoblox' ); ?></p>
 		<?php
 	}
 
@@ -476,11 +478,11 @@ final class AIG_Settings {
 	 */
 	public function render_schema() {
 		$values = $this->values();
-		echo '<select name="' . esc_attr( AIG_Plugin::OPTION_KEY ) . '[schema_mode]">';
-		echo '<option value="auto" ' . selected( $values['schema_mode'], 'auto', false ) . '>' . esc_html__( 'Auto — update supported SEO plugin Article data', 'article-insights-for-geo' ) . '</option>';
-		echo '<option value="off" ' . selected( $values['schema_mode'], 'off', false ) . '>' . esc_html__( 'Off — semantic HTML only', 'article-insights-for-geo' ) . '</option>';
+		echo '<select name="' . esc_attr( SEOblox_Plugin::OPTION_KEY ) . '[schema_mode]">';
+		echo '<option value="auto" ' . selected( $values['schema_mode'], 'auto', false ) . '>' . esc_html__( 'Auto — update supported SEO plugin Article data', 'seoblox' ) . '</option>';
+		echo '<option value="off" ' . selected( $values['schema_mode'], 'off', false ) . '>' . esc_html__( 'Off — semantic HTML only', 'seoblox' ) . '</option>';
 		echo '</select>';
-		echo '<p class="description">' . esc_html__( 'Auto updates dateModified in existing Yoast or Rank Math Article schema. It never creates a competing schema graph.', 'article-insights-for-geo' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Auto updates dateModified in existing Yoast or Rank Math Article schema. It never creates a competing schema graph.', 'seoblox' ) . '</p>';
 	}
 
 	/**
@@ -494,13 +496,13 @@ final class AIG_Settings {
 		}
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Article XP', 'article-insights-for-geo' ); ?></h1>
-			<p><?php esc_html_e( 'Give readers and crawlers clear, visible signals about article freshness, length, and purpose.', 'article-insights-for-geo' ); ?></p>
+			<h1><?php esc_html_e( 'SEOblox', 'seoblox' ); ?></h1>
+			<p><?php esc_html_e( 'Give readers and crawlers clear, visible signals about article freshness, length, and purpose.', 'seoblox' ); ?></p>
 			<?php settings_errors(); ?>
 			<form action="options.php" method="post">
 				<?php
-				settings_fields( 'aig_settings_group' );
-				do_settings_sections( 'article-insights-for-geo' );
+				settings_fields( 'seoblox_settings_group' );
+				do_settings_sections( 'seoblox' );
 				submit_button();
 				?>
 			</form>

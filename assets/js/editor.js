@@ -18,10 +18,18 @@
 	var Notice = wp.components.Notice;
 	var RichText = wp.blockEditor.RichText;
 
+	// Legacy block names remain editable, but are hidden from the inserter.
+	function registerComponentBlock( name, legacyName, settings ) {
+		registerBlockType( name, settings );
+		registerBlockType( legacyName, Object.assign( {}, settings, {
+			supports: Object.assign( {}, settings.supports, { inserter: false } ),
+		} ) );
+	}
+
 	function blockPreview( blockName, emptyMessage ) {
 		return el(
 			'div',
-			{ className: 'aig-editor-preview' },
+			{ className: 'seoblox-editor-preview aig-editor-preview' },
 			el( ServerSideRender, {
 				block: blockName,
 				EmptyResponsePlaceholder: function () {
@@ -31,17 +39,17 @@
 		);
 	}
 
-	registerBlockType( 'article-insights/details', {
+	registerComponentBlock( 'seoblox/article-details', 'article-insights/details', {
 		apiVersion: 2,
-		title: __( 'Article Details', 'article-insights-for-geo' ),
-		description: __( 'Display the published or modified date and estimated reading time.', 'article-insights-for-geo' ),
+		title: __( 'Article Details', 'seoblox' ),
+		description: __( 'Display the published or modified date and estimated reading time.', 'seoblox' ),
 		icon: 'clock',
 		category: 'widgets',
 		supports: { html: false, multiple: false },
 		edit: function () {
 			return blockPreview(
-				'article-insights/details',
-				__( 'Article Details is hidden for this post.', 'article-insights-for-geo' )
+				'seoblox/article-details',
+				__( 'Article Details is hidden for this post.', 'seoblox' )
 			);
 		},
 		save: function () {
@@ -49,17 +57,17 @@
 		},
 	} );
 
-	registerBlockType( 'article-insights/tldr', {
+	registerComponentBlock( 'seoblox/tldr', 'article-insights/tldr', {
 		apiVersion: 2,
-		title: __( 'TL;DR', 'article-insights-for-geo' ),
-		description: __( 'Display the approved article summary from the Article XP panel.', 'article-insights-for-geo' ),
+		title: __( 'TL;DR', 'seoblox' ),
+		description: __( 'Display the approved article summary from the SEOblox panel.', 'seoblox' ),
 		icon: 'excerpt-view',
 		category: 'widgets',
 		supports: { html: false, multiple: false },
 		edit: function () {
 			return blockPreview(
-				'article-insights/tldr',
-				__( 'Add a TL;DR in the Article XP panel to display this block.', 'article-insights-for-geo' )
+				'seoblox/tldr',
+				__( 'Add a TL;DR in the SEOblox panel to display this block.', 'seoblox' )
 			);
 		},
 		save: function () {
@@ -67,7 +75,7 @@
 		},
 	} );
 
-	function ArticleInsightsPanel() {
+	function SEObloxPanel() {
 		var state = useSelect( function ( select ) {
 			return {
 				postType: select( 'core/editor' ).getCurrentPostType(),
@@ -88,12 +96,12 @@
 
 		var format = state.meta[ config.meta.format ] || 'paragraph';
 		var richTextProps = {
-			className: 'aig-editor-tldr',
+			className: 'seoblox-editor-tldr aig-editor-tldr',
 			value: state.meta[ config.meta.tldr ] || '',
 			allowedFormats: [ 'core/bold', 'core/italic', 'core/link' ],
 			placeholder: format === 'list'
-				? __( 'Add a concise takeaway…', 'article-insights-for-geo' )
-				: __( 'Summarize what the reader will learn…', 'article-insights-for-geo' ),
+				? __( 'Add a concise takeaway…', 'seoblox' )
+				: __( 'Summarize what the reader will learn…', 'seoblox' ),
 			onChange: function ( value ) {
 				updateMeta( config.meta.tldr, value );
 			},
@@ -109,16 +117,16 @@
 		return el(
 			PluginDocumentSettingPanel,
 			{
-				name: 'article-insights',
-				title: __( 'Article XP', 'article-insights-for-geo' ),
-				className: 'aig-document-panel',
+				name: 'seoblox',
+				title: __( 'SEOblox', 'seoblox' ),
+				className: 'seoblox-document-panel aig-document-panel',
 			},
 			el( SelectControl, {
-				label: __( 'TL;DR format', 'article-insights-for-geo' ),
+				label: __( 'TL;DR format', 'seoblox' ),
 				value: format,
 				options: [
-					{ label: __( 'Short paragraph', 'article-insights-for-geo' ), value: 'paragraph' },
-					{ label: __( 'Bullet list', 'article-insights-for-geo' ), value: 'list' },
+					{ label: __( 'Short paragraph', 'seoblox' ), value: 'paragraph' },
+					{ label: __( 'Bullet list', 'seoblox' ), value: 'list' },
 				],
 				onChange: function ( value ) {
 					updateMeta( config.meta.format, value );
@@ -126,11 +134,11 @@
 			} ),
 			el(
 				BaseControl,
-				{ label: __( 'Approved TL;DR', 'article-insights-for-geo' ) },
+				{ label: __( 'Approved TL;DR', 'seoblox' ) },
 				el( RichText, richTextProps )
 			),
 			el( SelectControl, {
-				label: __( 'Article details', 'article-insights-for-geo' ),
+				label: __( 'Article details', 'seoblox' ),
 				value: state.meta[ config.meta.details ] || 'default',
 				options: visibilityOptions(),
 				onChange: function ( value ) {
@@ -138,7 +146,7 @@
 				},
 			} ),
 			el( SelectControl, {
-				label: __( 'TL;DR visibility', 'article-insights-for-geo' ),
+				label: __( 'TL;DR visibility', 'seoblox' ),
 				value: state.meta[ config.meta.showTldr ] || 'default',
 				options: visibilityOptions(),
 				onChange: function ( value ) {
@@ -146,13 +154,13 @@
 				},
 			} ),
 			el( SelectControl, {
-				label: __( 'Placement', 'article-insights-for-geo' ),
+				label: __( 'Placement', 'seoblox' ),
 				value: state.meta[ config.meta.placement ] || 'auto',
 				options: [
-					{ label: __( 'Automatic before content', 'article-insights-for-geo' ), value: 'auto' },
-					{ label: __( 'Manual using blocks', 'article-insights-for-geo' ), value: 'manual' },
+					{ label: __( 'Automatic before content', 'seoblox' ), value: 'auto' },
+					{ label: __( 'Manual using blocks', 'seoblox' ), value: 'manual' },
 				],
-				help: __( 'Manual placement disables automatic output for this post.', 'article-insights-for-geo' ),
+				help: __( 'Manual placement disables automatic output for this post.', 'seoblox' ),
 				onChange: function ( value ) {
 					updateMeta( config.meta.placement, value );
 				},
@@ -162,14 +170,14 @@
 
 	function visibilityOptions() {
 		return [
-			{ label: __( 'Use global setting', 'article-insights-for-geo' ), value: 'default' },
-			{ label: __( 'Show', 'article-insights-for-geo' ), value: 'show' },
-			{ label: __( 'Hide', 'article-insights-for-geo' ), value: 'hide' },
+			{ label: __( 'Use global setting', 'seoblox' ), value: 'default' },
+			{ label: __( 'Show', 'seoblox' ), value: 'show' },
+			{ label: __( 'Hide', 'seoblox' ), value: 'hide' },
 		];
 	}
 
-	registerPlugin( 'article-insights-for-geo', {
-		render: ArticleInsightsPanel,
+	registerPlugin( 'seoblox', {
+		render: SEObloxPanel,
 		icon: 'visibility',
 	} );
-} )( window.wp, window.aigEditor );
+} )( window.wp, window.seobloxEditor );

@@ -2,7 +2,7 @@
 	'use strict';
 
 	function field( key ) {
-		return document.querySelector( '[name="aig_settings[' + key + ']"]' );
+		return document.querySelector( '[name="seoblox_settings[' + key + ']"]' );
 	}
 
 	function isHex( value ) {
@@ -10,7 +10,7 @@
 	}
 
 	function initPreview() {
-		var preview = document.querySelector( '.aig-settings-preview' );
+		var preview = document.querySelector( '.seoblox-settings-preview' );
 		if ( ! preview ) {
 			return;
 		}
@@ -32,35 +32,35 @@
 			}
 
 			preview.style.setProperty( property, input.value );
-			var swatch = document.querySelector( '[data-aig-swatch="' + input.name + '"]' );
+			var swatch = document.querySelector( '[data-seoblox-swatch="' + input.name + '"]' );
 			if ( swatch ) {
 				swatch.style.backgroundColor = input.value;
 			}
 		}
 
 		function update() {
-			updateColor( 'background', '--aig-background' );
-			updateColor( 'accent', '--aig-accent' );
-			updateColor( 'text', '--aig-text' );
+			updateColor( 'background', '--seoblox-background' );
+			updateColor( 'accent', '--seoblox-accent' );
+			updateColor( 'text', '--seoblox-text' );
 
 			if ( controls.radius ) {
 				var radius = Math.min( 40, Math.max( 0, parseInt( controls.radius.value, 10 ) || 0 ) );
-				preview.style.setProperty( '--aig-radius', radius + 'px' );
+				preview.style.setProperty( '--seoblox-radius', radius + 'px' );
 			}
 
 			if ( controls.spacing ) {
 				preview.style.setProperty(
-					'--aig-padding',
+					'--seoblox-padding',
 					controls.spacing.value === 'compact' ? '14px 18px' : '18px 22px'
 				);
 			}
 
-			var modifiedPreview = preview.querySelector( '[data-aig-preview-modified]' );
+			var modifiedPreview = preview.querySelector( '[data-seoblox-preview-modified]' );
 			if ( modifiedPreview && controls.modifiedLabel ) {
 				modifiedPreview.textContent = controls.modifiedLabel.value || 'Last updated on';
 			}
 
-			var readPreview = preview.querySelector( '[data-aig-preview-read]' );
+			var readPreview = preview.querySelector( '[data-seoblox-preview-read]' );
 			if ( readPreview && controls.readLabel ) {
 				readPreview.textContent = ( controls.readLabel.value || '%s min read' ).replace( /%s/g, '8' );
 			}

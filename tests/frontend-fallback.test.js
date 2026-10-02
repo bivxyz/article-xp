@@ -9,7 +9,7 @@ const script = fs.readFileSync(
 	'utf8'
 );
 
-function runPlacement( targetSelector, useArticleFallback ) {
+function runPlacement( targetSelector, useArticleFallback, options = {} ) {
 	const calls = [];
 	const classes = [];
 	const fallback = {
@@ -34,10 +34,15 @@ function runPlacement( targetSelector, useArticleFallback ) {
 		},
 	};
 	const document = {
-		readyState: 'complete',
+		readyState: options.loading ? 'loading' : 'complete',
+		addEventListener( event, callback ) {
+			assert.equal( event, 'DOMContentLoaded' );
+			assert.equal( calls.length, 0 );
+			callback();
+		},
 		querySelector( selector ) {
-			if ( selector === '[data-aig-builder-fallback]' ) {
-				return fallback;
+			if ( selector === '[data-seoblox-builder-fallback]' ) {
+				return options.noFallback ? null : fallback;
 			}
 			if ( targetSelector && selector === targetSelector ) {
 				return target;
@@ -57,12 +62,16 @@ function runPlacement( targetSelector, useArticleFallback ) {
 [
 	'.oxy-stock-content-styles',
 	'.elementor-widget-theme-post-content .elementor-widget-container',
+	'.elementor-widget-theme-post-content',
 	'.et_pb_post_content',
 	'.fl-module-fl-post-content .fl-module-content',
+	'.fl-post-content',
 	'.brxe-post-content',
 	'.bde-post-content',
 	'.wp-block-post-content',
 	'article .entry-content',
+	'.entry-content',
+	'.post-content',
 ].forEach( ( selector ) => {
 	test( `places fallback before ${ selector }`, () => {
 		const result = runPlacement( selector, false );
@@ -90,4 +99,15 @@ test( 'leaves the footer fallback unchanged when no safe article target exists',
 
 	assert.equal( result.calls.length, 0 );
 	assert.deepEqual( result.classes, [] );
+} );
+
+
+test( 'waits for DOMContentLoaded before moving the fallback', () => {
+	const result = runPlacement( '.oxy-stock-content-styles', false, { loading: true } );
+	assert.equal( result.calls.length, 1 );
+} );
+
+test( 'does nothing when no fallback was rendered', () => {
+	const result = runPlacement( '.entry-content', true, { noFallback: true } );
+	assert.equal( result.calls.length, 0 );
 } );
